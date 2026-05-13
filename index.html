@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a little world for you ♡</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Cormorant Garamond',serif;overflow:hidden;min-height:100vh;}
+#bgCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+#hub{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;padding:1.5rem;}
+.hub-title{font-family:'DM Serif Display',serif;font-style:italic;font-size:clamp(1.8rem,5vw,3rem);color:#4a1030;text-align:center;margin-bottom:0.3rem;text-shadow:0 2px 12px rgba(255,255,255,0.7);}
+.hub-sub{font-style:italic;color:#7a3050;font-size:0.85rem;letter-spacing:0.18em;text-align:center;margin-bottom:2rem;}
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;max-width:420px;width:90%;}
+.hub-card{background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.8);border-radius:20px;padding:1.4rem 1rem;text-align:center;cursor:pointer;transition:all 0.3s ease;position:relative;}
+.hub-card:hover{transform:translateY(-6px);background:rgba(255,255,255,0.75);box-shadow:0 16px 40px rgba(200,100,140,0.2);}
+.hub-card.done::after{content:'✦';position:absolute;top:0.6rem;right:0.8rem;color:#c06080;font-size:0.85rem;}
+.hub-icon{font-size:2rem;margin-bottom:0.5rem;display:block;}
+.hub-name{font-family:'DM Serif Display',serif;font-style:italic;font-size:1.1rem;color:#4a1030;margin-bottom:0.2rem;}
+.hub-desc{font-style:italic;color:#8a5068;font-size:0.75rem;line-height:1.5;}
+.hub-footer{margin-top:1.5rem;font-style:italic;color:rgba(80,20,40,0.45);font-size:0.78rem;text-align:center;}
+
+.screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;opacity:0;pointer-events:none;transition:opacity 0.5s ease;overflow-y:auto;}
+.screen.active{opacity:1;pointer-events:all;}
+.screen-title{font-family:'DM Serif Display',serif;font-style:italic;font-size:clamp(1.4rem,4vw,2.2rem);text-align:center;margin-bottom:0.3rem;}
+.screen-sub{font-style:italic;font-size:0.8rem;letter-spacing:0.15em;text-align:center;margin-bottom:1.8rem;}
+.back-btn{position:fixed;top:1rem;left:1rem;background:rgba(255,255,255,0.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.8);color:#5a2040;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.88rem;padding:0.35rem 1rem;border-radius:20px;cursor:pointer;z-index:100;transition:all 0.2s;}
+.back-btn:hover{background:rgba(255,255,255,0.9);}
+
+/* GARDEN */
+#garden-screen{background:rgba(252,235,225,0.82);}
+#garden-screen .screen-title{color:#4a2030;}
+#garden-screen .screen-sub{color:#8a5060;}
+#garden-area{position:relative;width:min(480px,88vw);height:210px;margin-bottom:1.2rem;}
+.soil{position:absolute;bottom:0;left:0;right:0;height:50px;background:linear-gradient(to bottom,#c8a070,#a07040);border-radius:50px 50px 0 0;}
+.seed-spot{position:absolute;bottom:24px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.4);border:2px dashed rgba(200,150,100,0.6);cursor:pointer;transition:all 0.2s;transform:translateX(-50%);}
+.seed-spot:hover{background:rgba(255,200,180,0.6);border-color:#e08080;}
+.seed-spot.planted{display:none;}
+.flower-wrap{position:absolute;bottom:48px;display:flex;flex-direction:column;align-items:center;pointer-events:all;cursor:pointer;transform:translateX(-50%);}
+.flower{font-size:2rem;opacity:0;transform:scale(0.2) translateY(20px);transition:all 1s cubic-bezier(0.34,1.56,0.64,1);display:block;}
+.flower.bloomed{opacity:1;transform:scale(1) translateY(0);}
+.flower-msg{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.96);border:1px solid rgba(255,200,220,0.7);border-radius:16px;padding:0.8rem 1rem;font-style:italic;font-size:0.82rem;color:#4a1030;opacity:0;pointer-events:none;transition:all 0.3s ease;z-index:50;width:175px;text-align:center;line-height:1.6;}
+.flower-wrap:hover .flower-msg{opacity:1;transform:translateX(-50%) translateY(-4px);}
+.garden-hint{font-style:italic;color:rgba(80,30,50,0.5);font-size:0.8rem;text-align:center;}
+.complete-btn{margin-top:1rem;background:rgba(255,255,255,0.6);border:1px solid rgba(255,180,200,0.7);color:#6a2040;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.95rem;padding:0.55rem 1.8rem;border-radius:20px;cursor:pointer;opacity:0;pointer-events:none;transition:all 0.3s;}
+.complete-btn.show{opacity:1;pointer-events:all;}
+.complete-btn:hover{background:rgba(255,255,255,0.85);}
+
+/* STARS */
+#stars-screen{background:linear-gradient(160deg,#1a0e30 0%,#2a1048 50%,#0e1830 100%);}
+#stars-screen .screen-title{color:#f0d0e8;}
+#stars-screen .screen-sub{color:#f5c842;}
+#star-field{position:absolute;inset:0;pointer-events:none;}
+.starbg{position:absolute;border-radius:50%;background:white;animation:twinkle ease-in-out infinite;pointer-events:none;}
+@keyframes twinkle{0%,100%{opacity:0.08;}50%{opacity:0.55;}}
+.falling-star{position:absolute;font-size:1.7rem;cursor:pointer;pointer-events:all;animation:starFall linear forwards;filter:drop-shadow(0 0 8px #f5c842);}
+@keyframes starFall{0%{transform:translateY(-40px);opacity:0;}10%{opacity:1;}90%{opacity:0.9;}100%{transform:translateY(106vh);opacity:0;}}
+.star-msg-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(20,10,40,0.97);border:1px solid rgba(245,200,220,0.35);border-radius:22px;padding:2rem;max-width:320px;width:90%;text-align:center;z-index:50;opacity:0;pointer-events:none;transition:all 0.4s ease;}
+.star-msg-box.show{opacity:1;pointer-events:all;}
+.star-msg-emoji{font-size:2.2rem;margin-bottom:0.7rem;display:block;}
+.star-msg-text{font-style:italic;font-size:1rem;line-height:1.85;color:#fff0f8;margin-bottom:1.2rem;}
+.star-close-btn{background:rgba(245,200,220,0.12);border:1px solid rgba(245,200,220,0.3);color:#f0d0e8;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.88rem;padding:0.38rem 1.2rem;border-radius:20px;cursor:pointer;}
+.stars-counter{font-style:italic;color:#f5c842;font-size:0.85rem;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:30;}
+
+/* CARDS */
+#cards-screen{background:rgba(240,230,252,0.85);}
+#cards-screen .screen-title{color:#3a1050;}
+#cards-screen .screen-sub{color:#7a3888;}
+.card-area{display:flex;flex-direction:column;align-items:center;gap:1.2rem;width:90%;max-width:480px;}
+.shuffle-hint{font-style:italic;color:#7a3888;font-size:0.82rem;letter-spacing:0.1em;text-align:center;}
+.deck-stack{position:relative;height:170px;width:110px;cursor:pointer;margin:0 auto;}
+.deck-shadow{position:absolute;width:100px;height:160px;border-radius:12px;}
+.deck-shadow:nth-child(1){top:6px;left:6px;background:linear-gradient(135deg,#c8a0e0,#a878c8);opacity:0.35;}
+.deck-shadow:nth-child(2){top:3px;left:3px;background:linear-gradient(135deg,#c8a0e0,#a878c8);opacity:0.6;}
+.deck-top{position:absolute;top:0;left:0;width:100px;height:160px;border-radius:12px;background:linear-gradient(135deg,#b880d8,#9060c0);border:1px solid rgba(220,180,240,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 20px rgba(140,60,180,0.3);transition:transform 0.3s;}
+.deck-top:hover{transform:translateY(-4px);}
+.deck-star{font-size:1.8rem;color:rgba(255,240,255,0.8);}
+.deck-label{font-style:italic;color:rgba(255,240,255,0.6);font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;}
+.drawn-cards{display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap;}
+.tarot-card{width:95px;height:155px;border-radius:12px;perspective:700px;cursor:pointer;flex-shrink:0;}
+.tarot-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.7s ease;}
+.tarot-card.flipped .tarot-inner{transform:rotateY(180deg);}
+.t-back,.t-front{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0.6rem;}
+.t-back{background:linear-gradient(135deg,#a878d0,#7848a8);border:1px solid rgba(220,180,240,0.5);font-size:1.5rem;color:rgba(255,240,255,0.5);}
+.t-front{background:linear-gradient(160deg,#faf0ff,#f0dff8);border:1px solid rgba(200,160,240,0.5);transform:rotateY(180deg);text-align:center;}
+.t-emoji{font-size:1.7rem;margin-bottom:0.3rem;}
+.t-cat{font-style:italic;color:#9050b8;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.2rem;}
+.t-name{font-family:'DM Serif Display',serif;font-style:italic;font-size:0.78rem;color:#3a1050;margin-bottom:0.25rem;line-height:1.2;}
+.t-meaning{font-style:italic;font-size:0.6rem;color:#5a3070;line-height:1.45;}
+.cards-hint{font-style:italic;color:rgba(80,30,100,0.5);font-size:0.78rem;text-align:center;}
+@keyframes wiggle{0%{transform:translateY(0) rotate(0deg);}25%{transform:translateY(-30px) rotate(-8deg);}75%{transform:translateY(-15px) rotate(6deg);}100%{transform:translateY(0) rotate(0deg);}}
+.wiggling{animation:wiggle 0.4s ease;}
+
+/* ADVENTURE */
+#adventure-screen{background:rgba(232,248,232,0.85);}
+#adventure-screen .screen-title{color:#1a4a1a;}
+#adventure-screen .screen-sub{color:#4a7a38;}
+.adventure-box{background:rgba(255,255,255,0.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.85);border-radius:22px;padding:1.8rem 1.6rem;max-width:460px;width:92%;text-align:center;}
+.adv-chapter{font-style:italic;color:#4a7a38;font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;margin-bottom:0.6rem;}
+.adv-scene{font-size:2.4rem;margin-bottom:0.8rem;display:block;}
+.adv-text{font-style:italic;font-size:0.97rem;line-height:1.95;color:#1a3a1a;margin-bottom:1.4rem;white-space:pre-line;}
+.adv-choices{display:flex;flex-direction:column;gap:0.55rem;}
+.adv-choice{background:rgba(255,255,255,0.6);border:1px solid rgba(160,210,140,0.7);color:#1a4a1a;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.92rem;padding:0.65rem 1.1rem;border-radius:12px;cursor:pointer;transition:all 0.25s;text-align:left;}
+.adv-choice:hover{background:rgba(200,240,180,0.5);border-color:#80b860;transform:translateX(5px);}
+
+/* COMPLETE */
+#complete-screen{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;opacity:0;pointer-events:none;transition:opacity 1s ease;background:rgba(252,235,245,0.88);backdrop-filter:blur(8px);}
+#complete-screen.active{opacity:1;pointer-events:all;}
+.complete-emoji{font-size:3.5rem;margin-bottom:1rem;animation:bounce 1.2s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-14px);}}
+.complete-title{font-family:'DM Serif Display',serif;font-style:italic;font-size:clamp(2rem,6vw,3.5rem);color:#4a1030;margin-bottom:0.75rem;line-height:1.15;}
+.complete-title span{color:#c05080;}
+.complete-msg{font-style:italic;color:#7a3050;font-size:1rem;max-width:380px;line-height:2.1;}
+.back-to-world{margin-top:1.5rem;background:rgba(255,255,255,0.6);backdrop-filter:blur(8px);border:1px solid rgba(255,180,200,0.7);color:#6a2040;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;padding:0.6rem 2rem;border-radius:20px;cursor:pointer;transition:all 0.3s;}
+.back-to-world:hover{background:rgba(255,255,255,0.85);}
+.confetti-piece{position:fixed;pointer-events:none;animation:cfall linear forwards;z-index:999;}
+@keyframes cfall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+
+
+/* ENTER SCREEN */
+#enter-screen{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;background:linear-gradient(160deg,#c8e0f8 0%,#e8c8f0 50%,#f8c8d8 100%);transition:opacity 1s ease;}
+#enter-screen.gone{opacity:0;pointer-events:none;}
+.enter-title{font-family:'DM Serif Display',serif;font-style:italic;font-size:clamp(2rem,7vw,4rem);color:#4a1030;margin-bottom:0.5rem;text-shadow:0 2px 12px rgba(255,255,255,0.6);}
+.enter-sub{font-style:italic;color:#7a3050;font-size:1rem;letter-spacing:0.1em;margin-bottom:2.5rem;line-height:1.8;}
+.enter-btn{background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.85);color:#5a1030;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.15rem;padding:0.8rem 2.5rem;border-radius:30px;cursor:pointer;transition:all 0.3s;letter-spacing:0.08em;box-shadow:0 4px 20px rgba(200,100,140,0.2);}
+.enter-btn:hover{background:rgba(255,255,255,0.85);transform:translateY(-3px);box-shadow:0 8px 30px rgba(200,100,140,0.3);}
+.enter-emoji{font-size:3rem;margin-bottom:1rem;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+/* MUSIC TOGGLE */
+#music-btn{position:fixed;bottom:1.2rem;right:1.2rem;z-index:200;background:rgba(255,255,255,0.7);backdrop-filter:blur(10px);border:1px solid rgba(255,180,200,0.6);border-radius:30px;padding:0.4rem 1rem;display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.88rem;font-family:'Cormorant Garamond',serif;font-style:italic;color:#6a2040;transition:all 0.3s;box-shadow:0 4px 16px rgba(200,100,140,0.2);}
+#music-btn:hover{background:rgba(255,255,255,0.9);transform:translateY(-2px);}
+</style>
+</head>
+<body>
+
+<div id="enter-screen">
+  <div class="enter-emoji">🌸</div>
+  <div class="enter-title">a little world<br>for you</div>
+  <p class="enter-sub">from avo, with love<br>happy 16th ♡</p>
+  <button class="enter-btn" onclick="enterWorld()">open ✦</button>
+</div>
+<canvas id="bgCanvas"></canvas>
+
+<div id="hub" style="display:none">
+  <h1 class="hub-title">a little world for you</h1>
+  <p class="hub-sub">four things to explore · happy 16th ♡</p>
+  <div class="hub-grid">
+    <div class="hub-card" id="hub-garden" onclick="openScreen('garden')"><span class="hub-icon">🌸</span><div class="hub-name">the garden</div><div class="hub-desc">plant seeds that bloom into something</div></div>
+    <div class="hub-card" id="hub-stars" onclick="openScreen('stars')"><span class="hub-icon">✨</span><div class="hub-name">the stars</div><div class="hub-desc">catch falling stars before they vanish</div></div>
+    <div class="hub-card" id="hub-cards" onclick="openScreen('cards')"><span class="hub-icon">🔮</span><div class="hub-name">the cards</div><div class="hub-desc">draw three cards for your sixteenth year</div></div>
+    <div class="hub-card" id="hub-adventure" onclick="openScreen('adventure')"><span class="hub-icon">🌿</span><div class="hub-name">the path</div><div class="hub-desc">a short adventure, just for you</div></div>
+  </div>
+  <div class="hub-footer" id="hub-footer">explore all four to unlock something ♡</div>
+</div>
+
+<div class="screen" id="garden-screen">
+  <button class="back-btn" onclick="closeScreen('garden')">← back</button>
+  <h2 class="screen-title">the garden</h2>
+  <p class="screen-sub">tap the soil to plant · hover to read ✦</p>
+  <div id="garden-area"><div class="soil"></div></div>
+  <p class="garden-hint" id="garden-hint">tap a spot in the soil ✦</p>
+  <button class="complete-btn" id="garden-done-btn" onclick="completeGame('garden')">i've tended the garden ♡</button>
+</div>
+
+<div class="screen" id="stars-screen">
+  <button class="back-btn" onclick="closeScreen('stars')">← back</button>
+  <h2 class="screen-title">the stars</h2>
+  <p class="screen-sub">tap a star before it falls away ✦</p>
+  <div id="star-field"></div>
+  <div class="star-msg-box" id="star-msg"><span class="star-msg-emoji" id="star-emoji"></span><p class="star-msg-text" id="star-text"></p><button class="star-close-btn" onclick="closeStar()">catch another ✦</button></div>
+  <div class="stars-counter" id="stars-counter">0 / 7 stars caught</div>
+</div>
+
+<div class="screen" id="cards-screen">
+  <button class="back-btn" onclick="closeScreen('cards')">← back</button>
+  <h2 class="screen-title">the cards</h2>
+  <p class="screen-sub">three cards drawn just for you ✦</p>
+  <div class="card-area">
+    <div class="shuffle-hint" id="shuffle-hint">tap the deck to shuffle and draw ✦</div>
+    <div class="deck-stack" id="deck-stack" onclick="shuffleDraw()"><div class="deck-shadow"></div><div class="deck-shadow"></div><div class="deck-top" id="deck-top"><div class="deck-star">✦</div><div class="deck-label">tap to draw</div></div></div>
+    <div class="drawn-cards" id="drawn-cards"></div>
+    <div class="cards-hint" id="cards-hint"></div>
+  </div>
+</div>
+
+<div class="screen" id="adventure-screen">
+  <button class="back-btn" onclick="closeScreen('adventure')">← back</button>
+  <div class="adventure-box" id="adv-box">
+    <div class="adv-chapter" id="adv-chapter">prologue</div>
+    <span class="adv-scene" id="adv-scene">🌿</span>
+    <p class="adv-text" id="adv-text"></p>
+    <div class="adv-choices" id="adv-choices"></div>
+  </div>
+</div>
+
+<div id="complete-screen">
+  <div class="complete-emoji">🌸</div>
+  <div class="complete-title">happy <span>birthday</span>,<br>girlie.</div>
+  <p class="complete-msg">i am so lucky to have you.<br>we have been through the ups and downs<br>and we are both still here.<br>i wouldn't have it any other way.<br><br>— avo ♡</p>
+  <button class="back-to-world" onclick="goBack()">back to the world ♡</button>
+</div>
+
+
+<button id="music-btn" onclick="toggleMusic()"><span id="music-icon">🎵</span><span id="music-label">music on</span></button>
+<audio id="bgMusic" loop>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ── MUSIC ──
+const music = document.getElementById('bgMusic');
+const musicBtn = document.getElementById('music-btn');
+let musicOn = false;
+music.volume = 0.8;
+
+function toggleMusic(){
+  if(musicOn){
+    music.pause();
+    document.getElementById('music-icon').textContent='🎵';
+    document.getElementById('music-label').textContent='music off';
+    musicOn=false;
+  } else {
+    music.play().catch(()=>{});
+    document.getElementById('music-icon').textContent='🔇';
+    document.getElementById('music-label').textContent='music on';
+    musicOn=true;
+  }
+}
+function enterWorld(){
+  const enter = document.getElementById('enter-screen');
+  music.play().then(()=>{ musicOn=true; document.getElementById('music-icon').textContent='🔇'; document.getElementById('music-label').textContent='music on'; }).catch(()=>{});
+  enter.classList.add('gone');
+  setTimeout(()=>{ enter.style.display='none'; document.getElementById('hub').style.display='flex'; }, 1100);
+}
+
+// ── CANVAS: DREAMY SKY ──
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, t = 0;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+const sparks = Array.from({length:90}, ()=>({
+  x:Math.random(), y:Math.random(),
+  r:0.5+Math.random()*2.5,
+  ph:Math.random()*Math.PI*2,
+  sp:0.4+Math.random()*1.8,
+  type:Math.random()>0.5?'dot':'cross'
+}));
+
+const clouds = Array.from({length:7}, ()=>({
+  x:Math.random(),
+  y:0.05+Math.random()*0.5,
+  w:0.15+Math.random()*0.22,
+  h:0.06+Math.random()*0.1,
+  sp:0.00008+Math.random()*0.00012,
+  alpha:0.5+Math.random()*0.3,
+  pink:Math.random()>0.5,
+}));
+
+function drawCloud(x,y,w,h,alpha,pink){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const g=ctx.createRadialGradient(x,y,0,x,y,w);
+  if(pink){g.addColorStop(0,'rgba(255,210,230,1)');g.addColorStop(0.5,'rgba(255,185,218,0.7)');g.addColorStop(1,'rgba(255,200,230,0)');}
+  else{g.addColorStop(0,'rgba(230,240,255,1)');g.addColorStop(0.5,'rgba(210,228,255,0.7)');g.addColorStop(1,'rgba(220,235,255,0)');}
+  ctx.fillStyle=g;
+  [[0,0,0.5,0.5],[-.3,.1,.35,.4],[.3,.1,.35,.4],[.15,-.1,.3,.38],[-.15,-.05,.28,.35]].forEach(([dx,dy,rw,rh])=>{
+    ctx.beginPath();ctx.ellipse(x+dx*w,y+dy*h,rw*w,rh*h,0,0,Math.PI*2);ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawSparkle(x,y,r,alpha,type){
+  ctx.save(); ctx.globalAlpha=alpha;
+  if(type==='cross'){
+    ctx.strokeStyle='white';ctx.lineWidth=r*0.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-r,y);ctx.lineTo(x+r,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x,y+r);ctx.stroke();
+    ctx.lineWidth=r*0.25;
+    ctx.beginPath();ctx.moveTo(x-r*.6,y-r*.6);ctx.lineTo(x+r*.6,y+r*.6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+r*.6,y-r*.6);ctx.lineTo(x-r*.6,y+r*.6);ctx.stroke();
+  } else {
+    const g=ctx.createRadialGradient(x,y,0,x,y,r*2);
+    g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.3,'rgba(255,240,255,0.6)');g.addColorStop(1,'rgba(255,220,255,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r*2,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRainbow(){
+  const cx=W*0.25, cy=H*0.9;
+  const bands=[
+    {r:Math.min(W,H)*0.85,c:'rgba(200,240,255,0.07)'},
+    {r:Math.min(W,H)*0.78,c:'rgba(190,215,255,0.08)'},
+    {r:Math.min(W,H)*0.71,c:'rgba(220,200,255,0.09)'},
+    {r:Math.min(W,H)*0.64,c:'rgba(255,190,230,0.10)'},
+    {r:Math.min(W,H)*0.57,c:'rgba(255,205,205,0.08)'},
+    {r:Math.min(W,H)*0.50,c:'rgba(255,225,185,0.07)'},
+  ];
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,W,H*0.85);ctx.clip();
+  bands.forEach(b=>{
+    const g=ctx.createRadialGradient(cx,cy,b.r*0.88,cx,cy,b.r);
+    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.6,b.c);g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  });
+  const sg=ctx.createLinearGradient(0,H*0.6,W,0);
+  sg.addColorStop(0,'rgba(200,240,255,0)');
+  sg.addColorStop(0.35,'rgba(220,200,255,0.10)');
+  sg.addColorStop(0.5,'rgba(255,210,240,0.15)');
+  sg.addColorStop(0.65,'rgba(200,240,255,0.08)');
+  sg.addColorStop(1,'rgba(180,220,255,0)');
+  ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+
+function drawFrame(){
+  t+=0.006;
+  const sh=Math.sin(t*0.12)*0.03;
+  const gr=ctx.createLinearGradient(0,0,W*0.4,H);
+  gr.addColorStop(0,  `hsl(${208+sh*25},68%,${80+sh*4}%)`);
+  gr.addColorStop(0.3,`hsl(${218+sh*18},60%,${83+sh*3}%)`);
+  gr.addColorStop(0.6,`hsl(${295+sh*12},52%,${85+sh*3}%)`);
+  gr.addColorStop(1,  `hsl(${318+sh*8}, 58%,${87+sh*2}%)`);
+  ctx.fillStyle=gr; ctx.fillRect(0,0,W,H);
+  drawRainbow();
+  clouds.forEach(c=>{
+    c.x+=c.sp; if(c.x>1.3)c.x=-0.3;
+    drawCloud(c.x*W,c.y*H,c.w*W,c.h*H,c.alpha,c.pink);
+  });
+  sparks.forEach(s=>{
+    const pulse=(Math.sin(t*s.sp+s.ph)+1)/2;
+    const alpha=pulse*0.82;
+    if(alpha>0.06)drawSparkle(s.x*W,s.y*H,s.r,alpha,s.type);
+  });
+  const glow=ctx.createRadialGradient(W*0.65,H*0.18,0,W*0.65,H*0.18,W*0.55);
+  glow.addColorStop(0,'rgba(255,215,240,0.10)');glow.addColorStop(1,'rgba(255,215,240,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  requestAnimationFrame(drawFrame);
+}
+drawFrame();
+
+// ── NAV ──
+const completed=new Set();
+const hub=document.getElementById('hub');
+
+function openScreen(name){
+  hub.style.display='none';
+  document.getElementById(name+'-screen').classList.add('active');
+  if(name==='garden')initGarden();
+  if(name==='stars')initStars();
+  if(name==='cards')initCards();
+  if(name==='adventure')initAdventure();
+}
+function closeScreen(name){
+  document.getElementById(name+'-screen').classList.remove('active');
+  if(name==='stars'){clearInterval(starInt);document.getElementById('star-field').innerHTML='';}
+  hub.style.display='flex';
+  checkCompletion();
+}
+function completeGame(name){
+  completed.add(name);
+  document.getElementById('hub-'+name).classList.add('done');
+  closeScreen(name);
+}
+function checkCompletion(){
+  if(completed.size>=4){
+    setTimeout(()=>{hub.style.display='none';document.getElementById('complete-screen').classList.add('active');spawnConfetti();},400);
+  } else {
+    document.getElementById('hub-footer').textContent=(4-completed.size)===1?'one more to go ✦':(4-completed.size)+' more to explore ♡';
+  }
+}
+function goBack(){
+  document.getElementById('complete-screen').classList.remove('active');
+  hub.style.display='flex';
+}
+
+// ── GARDEN ──
+const fd=[
+  {e:'🌸',m:'i am so lucky to have you — genuinely.'},
+  {e:'🌷',m:'you are one of the very few people i have told things i have never told anyone else. that says everything.'},
+  {e:'🌺',m:'i hope your sixteenth year gives you everything you actually want — not what looks good, what you actually want.'},
+  {e:'🌼',m:'you deserve every good thing coming your way.'},
+  {e:'✿', m:'you have stayed. through everything. so have i. i think that means we are stuck with each other now.'},
+  {e:'🍀',m:'good things are coming. i know it.'},
+  {e:'🌻',m:'happy sweet sixteen. i am so glad i get to know you. ♡'},
+];
+const spots=[10,24,37,50,63,76,89];
+let planted=0,gardenReady=false;
+function initGarden(){
+  if(gardenReady)return; gardenReady=true;
+  const area=document.getElementById('garden-area');
+  spots.forEach((left,i)=>{
+    const spot=document.createElement('div');spot.className='seed-spot';spot.style.left=left+'%';
+    spot.addEventListener('click',()=>plantFlower(spot,i,left));area.appendChild(spot);
+  });
+}
+function plantFlower(spot,idx,left){
+  if(spot.classList.contains('planted'))return;spot.classList.add('planted');
+  const area=document.getElementById('garden-area');const d=fd[idx];
+  const wrap=document.createElement('div');wrap.className='flower-wrap';wrap.style.left=left+'%';
+  const msg=document.createElement('div');msg.className='flower-msg';msg.textContent=d.m;
+  const f=document.createElement('span');f.className='flower';f.textContent=d.e;
+  wrap.appendChild(msg);wrap.appendChild(f);area.appendChild(wrap);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('bloomed')));
+  planted++;
+  if(planted===1)document.getElementById('garden-hint').textContent='hover the flowers to read them ✦';
+  if(planted>=5)document.getElementById('garden-done-btn').classList.add('show');
+}
+
+// ── STARS ──
+for(let i=0;i<80;i++){
+  const s=document.createElement('div');s.className='starbg';
+  const sz=0.4+Math.random()*2;
+  s.style.cssText=`width:${sz}px;height:${sz}px;position:absolute;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s;`;
+  document.getElementById('stars-screen').appendChild(s);
+}
+const sm=[
+  {e:'🌙',t:'i am so lucky to have you. genuinely.'},
+  {e:'✨',t:'you are one of the few people i can actually be myself around. i hope you know how much that means.'},
+  {e:'💛',t:'four years. ups and downs. still here. still us. i would not change that for anything.'},
+  {e:'🌟',t:'you do not let just anyone in. the fact that you let me in a little — i do not take that lightly. ever.'},
+  {e:'💫',t:'sixteen is going to be big for you. something good is on its way.'},
+  {e:'🌠',t:'i hope this year gives you everything you have actually been wanting. you deserve it.'},
+  {e:'⭐',t:'you caught all seven. happy birthday, girlie. ♡'},
+];
+let starsCaught=0,starInt=null;
+function initStars(){
+  starsCaught=0;document.getElementById('stars-counter').textContent='0 / 7 stars caught';
+  document.getElementById('star-field').innerHTML='';document.getElementById('star-msg').classList.remove('show');
+  if(starInt)clearInterval(starInt);spawnStar();starInt=setInterval(()=>{if(starsCaught<7)spawnStar();},1800);
+}
+function spawnStar(){
+  const field=document.getElementById('star-field');const star=document.createElement('div');star.className='falling-star';
+  star.textContent=['⭐','✨','💫','🌟','🌠','💛','🌙'][Math.floor(Math.random()*7)];
+  const dur=4+Math.random()*4;star.style.cssText=`left:${5+Math.random()*85}%;animation-duration:${dur}s;top:-40px;position:absolute;`;
+  star.addEventListener('click',()=>catchStar(star));field.appendChild(star);setTimeout(()=>star.remove(),dur*1000);
+}
+function catchStar(star){
+  if(starsCaught>=7)return;star.remove();const msg=sm[starsCaught];starsCaught++;
+  document.getElementById('stars-counter').textContent=starsCaught+' / 7 stars caught';
+  document.getElementById('star-emoji').textContent=msg.e;document.getElementById('star-text').textContent=msg.t;
+  document.getElementById('star-msg').classList.add('show');
+  if(starsCaught>=7){clearInterval(starInt);setTimeout(()=>{document.getElementById('star-msg').classList.remove('show');completeGame('stars');},3500);}
+}
+function closeStar(){document.getElementById('star-msg').classList.remove('show');}
+
+// ── CARDS ──
+const ac=[
+  {e:'☀️',name:'The Sun',cat:'for you',m:'pure joy and a season to shine without apology. this one is yours.'},
+  {e:'🌟',name:'The Star',cat:'for you',m:'hope and beautiful things ahead. the universe is pointing its light at you.'},
+  {e:'🌙',name:'The Moon',cat:'for you',m:'deep intuition and quiet knowing. trust what you feel — your instincts are a gift.'},
+  {e:'⚡',name:'Wheel of Fortune',cat:'for you',m:'good fortune turning your way. a new cycle, full of things worth having.'},
+  {e:'🌍',name:'The World',cat:'for you',m:'you are exactly where you are meant to be. wholeness, completion, arrival.'},
+  {e:'💫',name:'The Magician',cat:'for us',m:'two people who between them have everything they need. this friendship makes both of you more.'},
+  {e:'🤝',name:'The Lovers',cat:'for us',m:'built on real choice, real staying. this is the kind that lasts.'},
+  {e:'⚖️',name:'Justice',cat:'for us',m:'what is real stays real. balanced, honest, built to last.'},
+  {e:'🌸',name:'The Empress',cat:'year ahead',m:'everything you nurture this year will grow. abundance is coming.'},
+  {e:'🦁',name:'Strength',cat:'year ahead',m:'you have more in you than you think. sixteen will show you.'},
+  {e:'🔮',name:'High Priestess',cat:'year ahead',m:'trust yourself completely this year. your judgment is sharper than you know.'},
+];
+const cats=['for you','for us','year ahead'];
+let drawnCards=[],drawCount=0,isShuffling=false;
+function initCards(){
+  drawnCards=[];drawCount=0;isShuffling=false;
+  document.getElementById('drawn-cards').innerHTML='';document.getElementById('cards-hint').textContent='';
+  document.getElementById('shuffle-hint').textContent='tap the deck to shuffle and draw ✦';
+  document.getElementById('deck-stack').style.visibility='visible';
+}
+function shuffleDraw(){
+  if(isShuffling||drawCount>=3)return;isShuffling=true;
+  const top=document.getElementById('deck-top');let count=0;
+  function doWiggle(){top.classList.add('wiggling');setTimeout(()=>{top.classList.remove('wiggling');count++;if(count<3)setTimeout(doWiggle,120);else setTimeout(afterShuffle,200);},400);}
+  doWiggle();
+}
+function afterShuffle(){
+  isShuffling=false;const cat=cats[drawCount];
+  const pool=ac.filter(c=>c.cat===cat&&!drawnCards.find(d=>d.name===c.name));
+  const card=pool[Math.floor(Math.random()*pool.length)];drawnCards.push(card);drawCount++;
+  const wrap=document.createElement('div');wrap.className='tarot-card';
+  wrap.innerHTML='<div class="tarot-inner"><div class="t-back">✦</div><div class="t-front"><div class="t-emoji">'+card.e+'</div><div class="t-cat">'+card.cat+'</div><div class="t-name">'+card.name+'</div><div class="t-meaning">'+card.m+'</div></div></div>';
+  wrap.addEventListener('click',()=>wrap.classList.toggle('flipped'));
+  document.getElementById('drawn-cards').appendChild(wrap);
+  if(drawCount<3){document.getElementById('shuffle-hint').textContent=(3-drawCount)+' more to draw ✦';document.getElementById('cards-hint').textContent='tap a card to reveal it ✦';}
+  else{document.getElementById('deck-stack').style.visibility='hidden';document.getElementById('shuffle-hint').textContent='all three drawn — tap each to reveal ✦';setTimeout(()=>completeGame('cards'),4000);}
+}
+
+// ── ADVENTURE ──
+const story={
+  start:{c:'prologue',s:'🌿',t:'you open your eyes somewhere that feels like a dream — soft light, warm air, and somewhere ahead, music. two paths.',ch:[{t:'follow the sound of music →',n:'music'},{t:'walk toward the light through the trees →',n:'trees'}]},
+  music:{c:'the music',s:'🎻',t:'a violin, played with the kind of feeling that only comes from someone who means it. you find a clearing where the notes stay in the air a little longer than they should.',ch:[{t:'sit and listen →',n:'listen'},{t:'hum along →',n:'hum'}]},
+  trees:{c:'the light',s:'🌸',t:'through the trees you find a garden where everything is in bloom at once — impossible, magical, completely right. in the centre, a pond reflects stars even though it is still day.',ch:[{t:'make a wish →',n:'wish'},{t:'pick a flower to keep →',n:'flower'}]},
+  listen:{c:'the song',s:'🌙',t:'you sit and listen until it ends. when it does, the silence feels full rather than empty. some things do not need to be said out loud to be real.',ch:[{t:'continue →',n:'end'}]},
+  hum:{c:'the song',s:'✨',t:'you hum along, just quietly. the melody fits perfectly with what you were already humming in your heart.',ch:[{t:'continue →',n:'end'}]},
+  wish:{c:'the wish',s:'💫',t:'you close your eyes and wish. the water shimmers like it already knew. the stars in the reflection shift, just slightly.',ch:[{t:'continue →',n:'end'}]},
+  flower:{c:'the flower',s:'🌷',t:'you choose a small one — quietly beautiful, easy to miss if you were not looking. it fits perfectly in your hand.',ch:[{t:'continue →',n:'end'}]},
+  end:{c:'epilogue',s:'🌟',t:'the dream softens at the edges.\n\ni am so lucky to have you. we have been through the ups and downs and we are both still here. i would not have it any other way.\n\nhappy birthday, girlie.\n\n— avo ♡',ch:[{t:'finish ✦',n:'__done__'}]},
+};
+let advDone=false;
+function initAdventure(){if(!advDone){advDone=true;renderAdv('start');}}
+function renderAdv(key){
+  const node=story[key];if(!node)return;
+  const box=document.getElementById('adv-box');box.style.opacity='0';
+  setTimeout(()=>{
+    document.getElementById('adv-chapter').textContent=node.c;
+    document.getElementById('adv-scene').textContent=node.s;
+    document.getElementById('adv-text').textContent=node.t;
+    const ch=document.getElementById('adv-choices');ch.innerHTML='';
+    node.ch.forEach(c=>{const btn=document.createElement('button');btn.className='adv-choice';btn.textContent=c.t;btn.addEventListener('click',()=>{if(c.n==='__done__')completeGame('adventure');else renderAdv(c.n);});ch.appendChild(btn);});
+    box.style.opacity='1';box.style.transition='opacity 0.4s';
+  },250);
+}
+
+// ── CONFETTI ──
+function spawnConfetti(){
+  const items=['🌸','✨','⭐','🌙','💛','🌷','💫','🌟','🌺'];
+  for(let i=0;i<30;i++)setTimeout(()=>{
+    const c=document.createElement('div');c.className='confetti-piece';
+    c.textContent=items[Math.floor(Math.random()*items.length)];
+    c.style.cssText='left:'+Math.random()*100+'%;top:-20px;animation-duration:'+(2.5+Math.random()*3)+'s;font-size:'+(0.9+Math.random())+'rem;';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),6000);
+  },i*80);
+}
+</script>
+</body>
+</html>
